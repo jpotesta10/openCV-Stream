@@ -1,0 +1,36 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+using namespace cv;
+
+int main() {
+    VideoCapture cap(0); // Open the default camera
+
+    if (!cap.isOpened()) {
+        std::cerr << "Error: Could not open camera." << std::endl;
+        return -1;
+    }
+
+    // Set up FFmpeg process
+    FILE* ffmpeg = popen("ffmpeg -y -f rawvideo -pixel_format bgr24 -video_size 640x480 -framerate 30 -i - -f flv rtmp://localhost/live/stream", "w");
+
+    if (!ffmpeg) {
+        std::cerr << "Error: Could not open FFmpeg." << std::endl;
+        return -1;
+    }
+
+    Mat frame;
+    while (true) {
+        cap >> frame; // Capture a new frame
+
+        if (frame.empty()) break; // End of video stream
+
+        fwrite(frame.data, 1, frame.total() * frame.elemSize(), ffmpeg); // Send frame to FFmpeg
+
+        imshow("Webcam Feed", frame);
+
+        if (waitKey(30) >= 0) break; // Exit loop on key press
+    }
+
+    pclose(ffmpeg); // Close FFmpeg process
+    return 0;
+}
